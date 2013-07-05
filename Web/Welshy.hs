@@ -25,6 +25,7 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
+import Control.Monad.Trans.Error
 import Control.Monad.Trans.State hiding (get, put)
 import Data.Conduit
 import Data.Default
@@ -85,8 +86,10 @@ route met pat reader ok err =
         Nothing -> app req
     where
         internalServerError :: SomeException -> IO Response
-        internalServerError =
-            const $ return $ ResponseBuilder status500 [] mempty
+        internalServerError e = execResponseWriter $ do
+            status internalServerError500
+            text $ TL.pack $ show e
+            --const $ return $ ResponseBuilder status500 [] mempty
 
 matchRoute :: StdMethod -> RoutePattern -> Request -> Maybe [Param]
 matchRoute met pat req =
