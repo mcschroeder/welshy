@@ -5,10 +5,12 @@ module Web.Welshy
     ( welshy, welshyApp
 
     , Welshy
-    , middleware, addroute
+    , middleware
+    , RoutePattern, route
     , get, post, put, patch, delete, head, options
 
     , RequestReader
+    , param
     , err
 
     , ResponseWriter
@@ -31,7 +33,10 @@ import Network.HTTP.Types
 import Network.Wai
 import Network.Wai.Handler.Warp
 
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
+
+import Prelude hiding (head)
 
 import Web.Welshy.Request
 import Web.Welshy.Response
@@ -58,41 +63,42 @@ welshyApp (Welshy w) = do
 middleware :: Middleware -> Welshy ()
 middleware = Welshy . modify . (:)
 
-type Pattern = String
+get     = route GET
+post    = route POST
+put     = route PUT
+patch   = route PATCH
+delete  = route DELETE
+head    = route HEAD  -- TODO: clashes with Prelude.head
+options = route OPTIONS
 
-addroute :: StdMethod -> Pattern -> RequestReader e a
-         -> (a -> ResponseWriter ()) -> (e -> ResponseWriter ())
-         -> Welshy ()
-addroute met pat reader ok err = middleware $ route met pat reader ok err
+type RoutePattern = T.Text
 
-get     = addroute GET
-post    = addroute POST
-put     = addroute PUT
-patch   = addroute PATCH
-delete  = addroute DELETE
---head    = addroute HEAD  -- clashes with Prelude.head
-options = addroute OPTIONS
-
-route :: StdMethod -> Pattern -> RequestReader e a
+route :: StdMethod -> RoutePattern -> RequestReader e a
       -> (a -> ResponseWriter ()) -> (e -> ResponseWriter ())
-      -> Application -> Request -> ResourceT IO Response
-route met pat reader ok err app req =
-    case matchRoute met pat req of
-        Just params -> lift $ runRoute params `catch` exHandler
+      -> Welshy ()
+route met pat reader ok err =
+    middleware $ \app req -> case matchRoute met pat req of
+        Just captures -> lift $ handle internalServerError $ do
+            result <- runRequestReader reader captures req
+            let writer = either err ok result
+            execResponseWriter writer
         Nothing -> app req
     where
-        runRoute _ = do
-            writer <- either err ok <$> runRequestReader reader req
-            execResponseWriter writer
+        internalServerError :: SomeException -> IO Response
+        internalServerError =
+            const $ return $ ResponseBuilder status500 [] mempty
 
-        exHandler :: SomeException -> IO Response
-        exHandler = const $ return $ ResponseBuilder status500 [] mempty
-
--- TODO: pattern matching
-type Param = ()
-
-matchRoute :: StdMethod -> Pattern -> Request -> Maybe [Param]
+matchRoute :: StdMethod -> RoutePattern -> Request -> Maybe [Param]
 matchRoute met pat req =
     if Right met == parseMethod (requestMethod req)
-        then Just []
+        then go (filter (/= T.empty) $ T.split (=='/') pat) (pathInfo req) []
         else Nothing
+    where
+        go []     []     prs  = Just prs
+        go []     _      _    = Nothing
+        go _      []     _    = Nothing
+        go (p:ps) (r:rs) prs
+            | p == r          = go ps rs prs
+            | T.null p        = Nothing
+            | T.head p == ':' = go ps rs $ (T.tail p, r) : prs
+            | otherwise       = Nothing

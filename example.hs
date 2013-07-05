@@ -4,6 +4,7 @@
 import Web.Welshy
 
 import Control.Monad
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Network.HTTP.Types
 
@@ -12,12 +13,12 @@ data MyError = InvalidWordError String
 
 main = welshy 3000 $ do {
 
-; get "/test"
+; get "/test/:word"
 (do
-    let word = "hell"
-    err $ SomeOtherError 42
-    unless (word == "hello") (err $ InvalidWordError word)
-    return "world"
+    word <- param "word"
+    --err $ SomeOtherError 42
+    unless (word == "hello") (err $ InvalidWordError (T.unpack word))
+    return $ TL.fromStrict $ T.reverse word
 )
 (text)
 (\case
