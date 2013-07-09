@@ -38,7 +38,7 @@ runRequestReader (RequestReader reader) captures req =
 
 -----------------------------------------------------------------------
 
-param :: (Error e , Parseable a) => Text -> RequestReader e a
+param :: (Error e , Parsable a) => Text -> RequestReader e a
 param k = RequestReader $ do
     (lift $ lookup k <$> asks params) >>= \case
         Nothing  -> throwError $ strMsg "Welshy.param: not found"
@@ -47,7 +47,7 @@ param k = RequestReader $ do
             Right v  -> return v
 
 -- | Minimal complete definition: 'parseParam'
-class Parseable a where
+class Parsable a where
     parseParam :: Text -> Either String a
 
     -- | The default definition uses 'parseParam' to parse
@@ -55,22 +55,22 @@ class Parseable a where
     parseParamList :: Text -> Either String [a]
     parseParamList = mapM parseParam . T.split (== ',')
 
-instance Parseable a => Parseable [a] where
+instance Parsable a => Parsable [a] where
     parseParam = parseParamList
 
-instance Parseable Char where
+instance Parsable Char where
     parseParam t = case T.unpack t of
                        [c] -> Right c
                        _   -> Left "parseParam Char: no parse"
     parseParamList = Right . T.unpack
 
-instance Parseable Text    where parseParam = Right
-instance Parseable TL.Text where parseParam = Right . TL.fromStrict
-instance Parseable Int     where parseParam = readEither . T.unpack
-instance Parseable Integer where parseParam = readEither . T.unpack
-instance Parseable Bool    where parseParam = readEither . T.unpack
-instance Parseable Double  where parseParam = readEither . T.unpack
-instance Parseable Float   where parseParam = readEither . T.unpack
+instance Parsable Text    where parseParam = Right
+instance Parsable TL.Text where parseParam = Right . TL.fromStrict
+instance Parsable Int     where parseParam = readEither . T.unpack
+instance Parsable Integer where parseParam = readEither . T.unpack
+instance Parsable Bool    where parseParam = readEither . T.unpack
+instance Parsable Double  where parseParam = readEither . T.unpack
+instance Parsable Float   where parseParam = readEither . T.unpack
 
 -----------------------------------------------------------------------
 
