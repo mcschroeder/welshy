@@ -9,19 +9,19 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS
 import Data.Conduit
 import Data.Default
 import Data.Monoid
-import Network.HTTP.Types
-import Network.Wai
-
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as BS
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Lazy.Char8 as BL
-
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
+import Network.HTTP.Types
+import Network.Wai
 
 -----------------------------------------------------------------------
 
@@ -56,12 +56,24 @@ text t = do
     header hContentType "text/plain"
     _builder $ fromLazyByteString $ TL.encodeUtf8 t
 
+-- | Like 'text' but with a strict 'Text' value.
+text' :: Text -> ResponseWriter ()
+text' t = do
+    header hContentType "text/plain"
+    _builder $ fromByteString $ T.encodeUtf8 t
+
 -- | Set the response body to the given lazy 'TL.Text'
 -- and the content-type to \"text/html\".
 html :: TL.Text -> ResponseWriter ()
 html t = do
     header hContentType "text/html"
     _builder $ fromLazyByteString $ TL.encodeUtf8 t
+
+-- | Like 'html' but with a strict 'Text' value.
+html' :: Text -> ResponseWriter ()
+html' t = do
+    header hContentType "text/html"
+    _builder $ fromByteString $ T.encodeUtf8 t
 
 -- | Sends the given file as the response.
 file :: FilePath -> ResponseWriter ()

@@ -7,34 +7,36 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Error
 import Data.Monoid
+import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
 import Network.HTTP.Types
 
-data MyError = InvalidWordError String
+data MyError = InvalidWordError Text
              | SomeOtherError Int
              | MyError String
 
 instance Error MyError where
     strMsg = MyError
 
-main = welshy 3000 $ do {
+main = welshy 3000 $ do
+
+{ ---------------------------------------------------------------------
 
 ; get "/test/:word"
 (do
     word <- param "blah" <|> param "word"
     --err $ SomeOtherError 42
-    unless (word == "hello") (err $ InvalidWordError (T.unpack word))
-    return $ TL.fromStrict $ T.reverse word
+    unless (word == "hello") (err $ InvalidWordError word)
+    return $ T.reverse word
 )
-(text)
+(text')
 (\case
     (InvalidWordError x) -> do
         status badRequest400
-        text $ TL.pack $ x ++ "? I don't think so..."
+        text' $ mconcat [x, "? I don't think so..."]
     (SomeOtherError _) -> do
         status status418
-        text "some other error"
+        text' "some other error"
 )
 
-}
+} ---------------------------------------------------------------------

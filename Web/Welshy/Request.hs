@@ -8,19 +8,19 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
---import Control.Monad.Trans.Either
 import Control.Monad.Trans.Error
 import Control.Monad.Trans.Reader
 import Data.Default
 import Data.Monoid
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import Network.HTTP.Types
 import Network.Wai
 
-import qualified Data.Text as T
-
 -----------------------------------------------------------------------
 
-type Param = (T.Text, T.Text)
+type Param = (Text, Text)
 
 data Env = Env { request :: Request,
                  params  :: [Param] }
@@ -37,7 +37,7 @@ runRequestReader (RequestReader reader) captures req =
 
 -----------------------------------------------------------------------
 
-param :: (Error e , Parseable a) => T.Text -> RequestReader e a
+param :: (Error e , Parseable a) => Text -> RequestReader e a
 param k = RequestReader $ do
     (lift $ lookup k <$> asks params) >>= \case
         Nothing  -> throwError $ strMsg "Welshy.param: not found"
@@ -46,13 +46,14 @@ param k = RequestReader $ do
             Right v  -> return v
 
 class Parseable a where
-    parseParam :: T.Text -> Either T.Text a
+    parseParam :: Text -> Either Text a
 
-instance Parseable T.Text where parseParam = Right
-instance Parseable Int    where parseParam = readEither
+instance Parseable Text    where parseParam = Right
+instance Parseable TL.Text where parseParam = Right . TL.fromStrict
+instance Parseable Int     where parseParam = readEither
 
 -- stolen as-is from Scotty
-readEither :: (Read a) => T.Text -> Either T.Text a
+readEither :: (Read a) => Text -> Either Text a
 readEither t = case [ x | (x,"") <- reads (T.unpack t) ] of
                 [x] -> Right x
                 []  -> Left "Welshy.readEither: no parse"

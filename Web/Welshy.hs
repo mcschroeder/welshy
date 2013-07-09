@@ -15,7 +15,7 @@ module Web.Welshy
 
     , ResponseWriter
     , status
-    , text, html
+    , text, text', html, html'
     , file, filePart
     , source
     ) where
@@ -30,17 +30,18 @@ import Control.Monad.Trans.State hiding (get, put)
 import Data.Conduit
 import Data.Default
 import Data.Monoid
+import Data.Text (Text)
+import qualified Data.Text as T
 import Network.HTTP.Types
 import Network.Wai
 import Network.Wai.Handler.Warp
-
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
 
 import Prelude hiding (head)
 
 import Web.Welshy.Request
 import Web.Welshy.Response
+
+-----------------------------------------------------------------------
 
 newtype Welshy a = Welshy (StateT [Middleware] IO a)
     deriving (Functor, Applicative, Monad, MonadIO)
@@ -72,7 +73,7 @@ delete  = route DELETE
 head    = route HEAD  -- TODO: clashes with Prelude.head
 options = route OPTIONS
 
-type RoutePattern = T.Text
+type RoutePattern = Text
 
 route :: StdMethod -> RoutePattern -> RequestReader e a
       -> (a -> ResponseWriter ()) -> (e -> ResponseWriter ())
@@ -88,7 +89,7 @@ route met pat reader ok err =
         internalServerError :: SomeException -> IO Response
         internalServerError e = execResponseWriter $ do
             status internalServerError500
-            text $ TL.pack $ show e
+            text' $ T.pack $ show e
             --const $ return $ ResponseBuilder status500 [] mempty
 
 matchRoute :: StdMethod -> RoutePattern -> Request -> Maybe [Param]
