@@ -45,14 +45,33 @@ param k = RequestReader $ do
             Left msg -> throwError $ strMsg $ T.unpack msg
             Right v  -> return v
 
+-- | Minimal complete definition: 'parseParam'
 class Parseable a where
     parseParam :: Text -> Either Text a
+
+    -- | The default definition uses 'parseParam' to parse
+    -- comma-delimited lists.
+    parseParamList :: Text -> Either Text [a]
+    parseParamList = mapM parseParam . T.split (== ',')
+
+instance Parseable a => Parseable [a] where
+    parseParam = parseParamList
+
+instance Parseable Char where
+    parseParam t = case T.unpack t of
+                       [c] -> Right c
+                       _   -> Left "parseParam Char: no parse"
+    parseParamList = Right . T.unpack
 
 instance Parseable Text    where parseParam = Right
 instance Parseable TL.Text where parseParam = Right . TL.fromStrict
 instance Parseable Int     where parseParam = readEither
+instance Parseable Integer where parseParam = readEither
+instance Parseable Bool    where parseParam = readEither
+instance Parseable Double  where parseParam = readEither
+instance Parseable Float   where parseParam = readEither
 
--- stolen as-is from Scotty
+--- stolen as-is from Scotty
 readEither :: (Read a) => Text -> Either Text a
 readEither t = case [ x | (x,"") <- reads (T.unpack t) ] of
                 [x] -> Right x
