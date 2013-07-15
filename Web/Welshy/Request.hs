@@ -5,13 +5,9 @@
 module Web.Welshy.Request where
 
 import Control.Applicative
+import Control.Arrow
 import Control.Monad
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Error
-import Control.Monad.Trans.Reader
-import Data.Default
-import Data.Monoid
+import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -19,32 +15,38 @@ import Network.HTTP.Types
 import Network.Wai
 import Text.Read (readEither)
 
------------------------------------------------------------------------
-
-type Param = (Text, Text)
-
-data Env = Env { request :: Request,
-                 params  :: [Param] }
-
-newtype RequestReader e a = RequestReader (ErrorT e (ReaderT Env IO) a)
-    deriving (Functor, Applicative, Alternative, Monad, MonadIO)
-
-runRequestReader :: RequestReader e a -> [Param] -> Request -> IO (Either e a)
-runRequestReader (RequestReader reader) captures req =
-    runReaderT (runErrorT reader) (Env req params)
-    where
-        params = captures ++ queryparams
-        queryparams = [] -- TODO
+import Web.Welshy.Action
+import Web.Welshy.Response
 
 -----------------------------------------------------------------------
 
-param :: (Error e , Parsable a) => Text -> RequestReader e a
-param k = RequestReader $ do
-    (lift $ lookup k <$> asks params) >>= \case
-        Nothing  -> throwError $ strMsg "Welshy.param: not found"
-        Just raw -> case parseParam raw of
-            Left msg -> throwError $ strMsg msg
-            Right v  -> return v
+mkEnv :: [Param] -> Request -> Env
+mkEnv captures req = Env { _request = req
+                         , _params  = captures ++ queryText req }
+
+queryText :: Request -> [Param]
+queryText = map (second $ fromMaybe "") . queryToQueryText . queryString
+
+request :: Action Request
+request = Action $ \r s -> return (Right $ _request r, s)
+
+params :: Action [Param]
+params = Action $ \r s -> return (Right $ _params r, s)
+
+-----------------------------------------------------------------------
+
+param :: Parsable a => Text -> Action a
+param k = (lookup k <$> params) >>= \case
+    Nothing  -> abortWith $ paramNotFound k
+    Just raw -> case parseParam raw of
+        Left msg -> abortWith $ parseError msg
+        Right v  -> return v
+
+paramNotFound :: Text -> Action ()
+paramNotFound = undefined
+
+parseError :: String -> Action ()
+parseError = undefined
 
 -- | Minimal complete definition: 'parseParam'
 class Parsable a where
@@ -71,9 +73,3 @@ instance Parsable Integer where parseParam = readEither . T.unpack
 instance Parsable Bool    where parseParam = readEither . T.unpack
 instance Parsable Double  where parseParam = readEither . T.unpack
 instance Parsable Float   where parseParam = readEither . T.unpack
-
------------------------------------------------------------------------
-
--- | Aborts request handling with the given error value.
-err :: Error e => e -> RequestReader e a
-err = RequestReader . throwError

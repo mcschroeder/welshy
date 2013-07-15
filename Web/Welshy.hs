@@ -2,19 +2,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Web.Welshy
-    ( welshy, welshyApp
-
-    , Welshy
+    ( Welshy, welshy, welshyApp
     , middleware
+
+    , Action, abortWith
+
     , RoutePattern, route
     , get, post, put, patch, delete, head, options
 
-    , RequestReader
-    , param
-    , err
+    , Parsable, param
 
-    , ResponseWriter
-    , status
+    , status, header
     , text, text', html, html'
     , file, filePart
     , source
@@ -38,11 +36,13 @@ import Network.Wai.Handler.Warp
 
 import Prelude hiding (head)
 
+import Web.Welshy.Action
 import Web.Welshy.Request
 import Web.Welshy.Response
 
 -----------------------------------------------------------------------
 
+-- TODO: WriterT ?
 newtype Welshy a = Welshy (StateT [Middleware] IO a)
     deriving (Functor, Applicative, Monad, MonadIO)
 
@@ -75,22 +75,20 @@ options = route OPTIONS
 
 type RoutePattern = Text
 
-route :: StdMethod -> RoutePattern -> RequestReader e a
-      -> (a -> ResponseWriter ()) -> (e -> ResponseWriter ())
-      -> Welshy ()
-route met pat reader ok err =
-    middleware $ \app req -> case matchRoute met pat req of
-        Just captures -> lift $ handle internalServerError $ do
-            result <- runRequestReader reader captures req
-            let writer = either err ok result
-            execResponseWriter writer
+route :: StdMethod -> RoutePattern -> Action () -> Welshy ()
+route met pat act = middleware $ \app req ->
+    case matchRoute met pat req of
         Nothing -> app req
-    where
-        internalServerError :: SomeException -> IO Response
-        internalServerError e = execResponseWriter $ do
-            status internalServerError500
-            text' $ T.pack $ show e
-            --const $ return $ ResponseBuilder status500 [] mempty
+        Just captures -> lift $ catch (execAction act env def)
+                                      (\e -> execAction (err e) env def)
+            where
+                env = mkEnv captures req
+                err = defaultExceptionHandler
+
+defaultExceptionHandler :: SomeException -> Action ()
+defaultExceptionHandler e = do
+    status internalServerError500
+    text' $ T.pack $ show e
 
 matchRoute :: StdMethod -> RoutePattern -> Request -> Maybe [Param]
 matchRoute met pat req =
