@@ -1,11 +1,12 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Web.Welshy
     ( Welshy, welshy, welshyApp
     , middleware
 
-    , Action, abortWith
+    , Action, failWith
 
     , RoutePattern, route
     , get, post, put, patch, delete, head, options
@@ -65,26 +66,31 @@ welshyApp (Welshy w) = do
 middleware :: Middleware -> Welshy ()
 middleware = Welshy . modify . (:)
 
+execAction :: Exception e => Action () -> (e -> Action ()) -> [Param] -> Middleware
+execAction act h params nextApp req =
+    (lift $ safeRunAction act h params req def) >>= \case
+        Ok _ res  -> return res
+        Fail act' -> execAction act' h params nextApp req
+        Next      -> nextApp req
+
 get     = route GET
 post    = route POST
 put     = route PUT
 patch   = route PATCH
 delete  = route DELETE
-head    = route HEAD  -- TODO: clashes with Prelude.head
+head    = route HEAD  -- TODO: clashes with Prelude.head (who cares?)
 options = route OPTIONS
 
 type RoutePattern = Text
 
 route :: StdMethod -> RoutePattern -> Action () -> Welshy ()
-route met pat act = middleware $ \app req ->
+route met pat act = middleware $ \nextApp req ->
     case matchRoute met pat req of
-        Nothing -> app req
-        Just captures -> lift $ catch (execAction act env def)
-                                      (\e -> execAction (err e) env def)
-            where
-                env = mkEnv captures req
-                err = defaultExceptionHandler
+        Nothing       -> nextApp req
+        Just captures -> let h = defaultExceptionHandler in
+                         execAction act h captures nextApp req
 
+-- TODO: user-configurable setting in Welshy
 defaultExceptionHandler :: SomeException -> Action ()
 defaultExceptionHandler e = do
     status internalServerError500

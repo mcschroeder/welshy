@@ -17,11 +17,19 @@ main = welshy 3000 $ do
 
 ; get "/test/:word" $ do
     word <- mzero <|> param "blah" <|> param "word" <|> param "wat"
-    mzero
-    unless (word == "hello") $ abortWith $ do
+    --mzero
+    unless (word == "hello") $ failWith $ do
         status badRequest400
         text' $ mconcat [T.pack word, "? I don't think so..."]
 
     text' $ T.pack $ reverse word
+
+; get "/test2/:eid" $ do
+    eid <- param "eid" :: Action Int
+
+    if eid > 2
+        then text "greater than 2"
+        else text "too small"
+
 
 } ---------------------------------------------------------------------

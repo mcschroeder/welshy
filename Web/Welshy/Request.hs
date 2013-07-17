@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -20,33 +19,28 @@ import Web.Welshy.Response
 
 -----------------------------------------------------------------------
 
-mkEnv :: [Param] -> Request -> Env
-mkEnv captures req = Env { _request = req
-                         , _params  = captures ++ queryText req }
-
 queryText :: Request -> [Param]
 queryText = map (second $ fromMaybe "") . queryToQueryText . queryString
 
 request :: Action Request
-request = Action $ \r s -> return (Right $ _request r, s)
+request = Action $ \_ r s -> return $ Ok r s
 
 params :: Action [Param]
-params = Action $ \r s -> return (Right $ _params r, s)
+params = Action $ \p _ s -> return $ Ok p s
 
 -----------------------------------------------------------------------
 
+-- TODO:
+-- if a query param isn't found -> maybe?
+--  should we separate param & queryParam?
+--  explicit matching on existence of query params like RFC 6570 ?
+-- then we could also maybe extract documentaton from just the route pattern!
 param :: Parsable a => Text -> Action a
 param k = (lookup k <$> params) >>= \case
-    Nothing  -> abortWith $ paramNotFound k
+    Nothing  -> fail ("unknown parameter: " ++ T.unpack k)
     Just raw -> case parseParam raw of
-        Left msg -> abortWith $ parseError msg
+        Left msg -> next
         Right v  -> return v
-
-paramNotFound :: Text -> Action ()
-paramNotFound = undefined
-
-parseError :: String -> Action ()
-parseError = undefined
 
 -- | Minimal complete definition: 'parseParam'
 class Parsable a where

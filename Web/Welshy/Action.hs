@@ -1,9 +1,9 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Web.Welshy.Action where
 
 import Control.Applicative
+import Control.Exception
 import Control.Monad
 import Data.Text (Text)
 import Network.Wai
@@ -12,19 +12,16 @@ import Network.Wai
 
 type Param = (Text, Text)
 
-data Env = Env { _request :: Request, _params :: [Param] }
+data Result a = Ok a Response | Fail (Action ()) | Next
 
-newtype Action a = Action { runAction :: Env -> Response
-                                      -> IO (Either (Action ()) a, Response) }
-
-execAction :: Action () -> Env -> Response -> IO Response
-execAction m r s = runAction m r s >>= \case
-    (Left  m1, __) -> execAction m1 r s
-    (Right __, s1) -> return s1
+newtype Action a = Action { runAction :: [Param] -> Request -> Response
+                                      -> IO (Result a) }
 
 instance Functor Action where
-    fmap f m = Action $ \r s ->
-        fmap (\ ~(a, s1) -> (fmap f a, s1)) $ runAction m r s
+    fmap f m = Action $ \p r s -> runAction m p r s >>= \case
+        Ok a s1 -> return $ Ok (f a) s1
+        Fail m1 -> return $ Fail m1
+        Next    -> return $ Next
 
 instance Applicative Action where
     pure = return
@@ -35,24 +32,31 @@ instance Alternative Action where
     (<|>) = mplus
 
 instance Monad Action where
-    return a = Action $ \_ s -> return (Right a, s)
-    m >>= k  = Action $ \r s -> do
-        runAction m r s >>= \case
-            (Left  a, s1) -> return (Left a, s1)
-            (Right a, s1) -> do
-                ~(b, s2) <- runAction (k a) r s1
-                return (b, s2)
+    return a = Action $ \_ _ s -> return $ Ok a s
+    m >>= k  = Action $ \p r s -> runAction m p r s >>= \case
+        Ok a s1 -> runAction (k a) p r s1
+        Fail s1 -> return $ Fail s1
+        Next    -> return $ Next
+
+    fail msg = failWith $ error msg
+
+failWith :: Action () -> Action a
+failWith m = Action $ \_ _ _ -> return $ Fail m
+
+next :: Action a
+next = Action $ \_ _ _ -> return Next
 
 instance MonadPlus Action where
-    mzero       = Action $ \_ s -> return (Left $ fail "mzero", s)
-    m `mplus` n = Action $ \r s -> do
-        runAction m r s >>= \case
-            (Right a, s1) -> return (Right a, s1)
-            (Left  _, __) -> do
-                ~(b, s2) <- runAction n r s
-                return (b, s2)
+    mzero       = fail "mzero"
+    m `mplus` n = Action $ \p r s -> runAction m p r s >>= \case
+        Ok a s1 -> return $ Ok a s1
+        Fail __ -> runAction n p r s
+        Next    -> runAction n p r s
 
 -----------------------------------------------------------------------
 
-abortWith :: Action () -> Action a
-abortWith m = Action $ \_ s -> return (Left m, s)
+safeRunAction :: Exception e => Action a -> (e -> Action a)
+              -> [Param] -> Request -> Response -> IO (Result a)
+safeRunAction act h params req res =
+    catch (runAction act params req res)
+          (\e -> runAction (h e) params req res)
