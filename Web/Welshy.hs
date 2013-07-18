@@ -26,7 +26,7 @@ import qualified Control.Exception.Lifted as Lifted
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
-import Control.Monad.Trans.State hiding (get, put)
+import Control.Monad.Trans.Writer
 import qualified Data.ByteString.Char8 as BS
 import Data.Conduit
 import Data.Default
@@ -64,9 +64,9 @@ import Web.Welshy.Response
 
 -----------------------------------------------------------------------
 
--- TODO: WriterT ?
-newtype Welshy a = Welshy (StateT [Middleware] IO a)
-    deriving (Functor, Applicative, Monad, MonadIO)
+-- this is actually just a Monoid, but the do notation is so very convenient
+newtype Welshy a = Welshy (Writer [Middleware] a)
+    deriving (Functor, Applicative, Monad)
 
 welshy :: Port -> Welshy () -> IO ()
 welshy p w = do
@@ -77,8 +77,8 @@ welshy p w = do
 
 welshyApp :: Welshy () -> IO Application
 welshyApp (Welshy w) = do
-    ms <- execStateT w [defaultExceptionHandler]
-    return $ foldl (flip ($)) (const notFound) ms
+    let ms = defaultExceptionHandler : execWriter w
+    return $ foldr id (const notFound) ms
     where
         notFound = return $ ResponseBuilder notFound404 [] mempty
 
@@ -91,7 +91,7 @@ defaultExceptionHandler app req = Lifted.catch (app req) $ \e -> do
 -----------------------------------------------------------------------
 
 middleware :: Middleware -> Welshy ()
-middleware = Welshy . modify . (:)
+middleware = Welshy . tell . pure
 
 execAction :: Action () -> [Param] -> Middleware
 execAction act params nextApp req =
