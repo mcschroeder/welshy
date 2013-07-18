@@ -3,7 +3,6 @@
 module Web.Welshy.Action where
 
 import Control.Applicative
-import Control.Exception
 import Control.Monad
 import Data.Text (Text)
 import Network.Wai
@@ -52,11 +51,3 @@ instance MonadPlus Action where
         Ok a s1 -> return $ Ok a s1
         Fail __ -> runAction n p r s
         Next    -> runAction n p r s
-
------------------------------------------------------------------------
-
-safeRunAction :: Exception e => Action a -> (e -> Action a)
-              -> [Param] -> Request -> Response -> IO (Result a)
-safeRunAction act h params req res =
-    catch (runAction act params req res)
-          (\e -> runAction (h e) params req res)
