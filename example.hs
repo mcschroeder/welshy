@@ -5,6 +5,7 @@ import Web.Welshy
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Error
 import Data.Monoid
 import Data.Text (Text)
@@ -20,6 +21,7 @@ main = welshy 3000 $ do
 
 ; get "/secure" $ do
     token <- bearerAuth
+    liftIO $ putStrLn "why hello there"
     if token == (123 :: Int)
         then text "welcome"
         else status forbidden403

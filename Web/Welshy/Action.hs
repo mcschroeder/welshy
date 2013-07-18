@@ -4,6 +4,7 @@ module Web.Welshy.Action where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.Text (Text)
 import Network.Wai
 
@@ -51,3 +52,8 @@ instance MonadPlus Action where
         Ok a s1 -> return $ Ok a s1
         Fail __ -> runAction n p r s
         Next    -> runAction n p r s
+
+instance MonadIO Action where
+    liftIO m = Action $ \_ _ s -> do
+        a <- m
+        return $ Ok a s
