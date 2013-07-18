@@ -18,6 +18,12 @@ main = welshy 3000 $ do
 
 { ---------------------------------------------------------------------
 
+; get "/secure" $ do
+    token <- bearerAuth
+    if token == (123 :: Int)
+        then text "welcome"
+        else status forbidden403
+
 ; get "/a" $ do
     -- ~a <- blah
     --status undefined

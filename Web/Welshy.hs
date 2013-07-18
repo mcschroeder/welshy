@@ -12,6 +12,7 @@ module Web.Welshy
     , get, post, put, patch, delete, head, options
 
     , Parsable, param
+    , bearerAuth
 
     , status, header
     , text, text', html, html'

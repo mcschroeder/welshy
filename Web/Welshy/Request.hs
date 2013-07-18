@@ -6,9 +6,12 @@ module Web.Welshy.Request where
 import Control.Applicative
 import Control.Arrow
 import Control.Monad
+import Control.Monad.Trans.Class
+import qualified Data.ByteString as BS
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import Network.HTTP.Types
 import Network.Wai
@@ -67,3 +70,14 @@ instance Parsable Integer where parseParam = readEither . T.unpack
 instance Parsable Bool    where parseParam = readEither . T.unpack
 instance Parsable Double  where parseParam = readEither . T.unpack
 instance Parsable Float   where parseParam = readEither . T.unpack
+
+-----------------------------------------------------------------------
+
+bearerAuth :: Parsable a => Action a
+bearerAuth = do
+    headers <- requestHeaders <$> request
+    maybe (failWith $ status unauthorized401) return $ do
+        credentials <- lookup hAuthorization headers
+        let (scheme, raw) = BS.splitAt 7 credentials
+        guard (scheme == "Bearer ")
+        either (const Nothing) (Just) (parseParam $ T.decodeUtf8 raw)
