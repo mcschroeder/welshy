@@ -6,7 +6,7 @@ module Web.Welshy
     ( Welshy, welshy, welshyApp
     , middleware
 
-    , Action, failWith
+    , Action, halt, pass
 
     , RoutePattern, route
     , get, post, put, patch, delete, head, options
@@ -27,7 +27,7 @@ import qualified Control.Exception.Lifted as Lifted
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
-import Control.Monad.Trans.Writer
+import Control.Monad.Trans.Writer hiding (pass)
 import qualified Data.ByteString.Char8 as BS
 import Data.Conduit
 import Data.Default
@@ -98,8 +98,8 @@ execAction :: Action () -> [Param] -> Middleware
 execAction act params nextApp req =
     (lift $ runAction act params req def) >>= \case
         Ok _ res  -> return res
-        Fail act' -> execAction act' params nextApp req
-        Next      -> nextApp req
+        Halt act' -> execAction act' params nextApp req
+        Pass      -> nextApp req
 
 get     = route GET
 post    = route POST

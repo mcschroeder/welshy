@@ -47,7 +47,7 @@ main = welshy 3000 $ do
 ; get "/test/:word" $ do
     word <- mzero <|> param "blah" <|> param "word" <|> param "wat"
     --mzero
-    unless (word == "hello") $ failWith $ do
+    unless (word == "hello") $ halt $ do
         status badRequest400
         text' $ mconcat [T.pack word, "? I don't think so..."]
 

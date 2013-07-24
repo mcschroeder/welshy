@@ -42,7 +42,7 @@ param :: Parsable a => Text -> Action a
 param k = (lookup k <$> params) >>= \case
     Nothing  -> fail ("unknown parameter: " ++ T.unpack k)
     Just raw -> case parseParam raw of
-        Left msg -> next
+        Left msg -> pass
         Right v  -> return v
 
 -- | Minimal complete definition: 'parseParam'
@@ -76,7 +76,7 @@ instance Parsable Float   where parseParam = readEither . T.unpack
 bearerAuth :: Parsable a => Action a
 bearerAuth = do
     headers <- requestHeaders <$> request
-    maybe (failWith $ status unauthorized401) return $ do
+    maybe (halt $ status unauthorized401) return $ do
         credentials <- lookup hAuthorization headers
         let (scheme, raw) = BS.splitAt 7 credentials
         guard (scheme == "Bearer ")

@@ -12,7 +12,7 @@ import Network.Wai
 
 type Param = (Text, Text)
 
-data Result a = Ok a Response | Fail (Action ()) | Next
+data Result a = Ok a Response | Halt (Action ()) | Pass
 
 newtype Action a = Action { runAction :: [Param] -> Request -> Response
                                       -> IO (Result a) }
@@ -20,8 +20,8 @@ newtype Action a = Action { runAction :: [Param] -> Request -> Response
 instance Functor Action where
     fmap f m = Action $ \p r s -> runAction m p r s >>= \case
         Ok a s1 -> return $ Ok (f a) s1
-        Fail m1 -> return $ Fail m1
-        Next    -> return $ Next
+        Halt m1 -> return $ Halt m1
+        Pass    -> return $ Pass
 
 instance Applicative Action where
     pure = return
@@ -35,23 +35,23 @@ instance Monad Action where
     return a = Action $ \_ _ s -> return $ Ok a s
     m >>= k  = Action $ \p r s -> runAction m p r s >>= \case
         Ok a s1 -> runAction (k a) p r s1
-        Fail s1 -> return $ Fail s1
-        Next    -> return $ Next
+        Halt s1 -> return $ Halt s1
+        Pass    -> return $ Pass
 
-    fail msg = failWith $ error msg
+    fail msg = halt $ error msg
 
-failWith :: Action () -> Action a
-failWith m = Action $ \_ _ _ -> return $ Fail m
+halt :: Action () -> Action a
+halt m = Action $ \_ _ _ -> return $ Halt m
 
-next :: Action a
-next = Action $ \_ _ _ -> return Next
+pass :: Action a
+pass = Action $ \_ _ _ -> return Pass
 
 instance MonadPlus Action where
     mzero       = fail "mzero"
     m `mplus` n = Action $ \p r s -> runAction m p r s >>= \case
         Ok a s1 -> return $ Ok a s1
-        Fail __ -> runAction n p r s
-        Next    -> runAction n p r s
+        Halt __ -> runAction n p r s
+        Pass    -> runAction n p r s
 
 instance MonadIO Action where
     liftIO m = Action $ \_ _ s -> do
