@@ -7,7 +7,10 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad
 import Control.Monad.Trans.Class
+import Control.Monad.Trans.Resource
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
+import Data.Conduit.Lazy
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -22,14 +25,22 @@ import Web.Welshy.Response
 
 -----------------------------------------------------------------------
 
+mkEnv :: [Param] -> Request -> ResourceT IO Env
+mkEnv params req = do
+    body <- BL.fromChunks <$> lazyConsume (requestBody req)
+    return $ Env params body req
+
 queryText :: Request -> [Param]
 queryText = map (second $ fromMaybe "") . queryToQueryText . queryString
 
 request :: Action Request
-request = Action $ \_ r s -> return $ Ok r s
+request = Action $ \r s -> return $ Ok (_request r) s
 
 params :: Action [Param]
-params = Action $ \p _ s -> return $ Ok p s
+params = Action $ \r s -> return $ Ok (_params r) s
+
+body :: Action BL.ByteString
+body = Action $ \r s -> return $ Ok (_body r) s
 
 -----------------------------------------------------------------------
 

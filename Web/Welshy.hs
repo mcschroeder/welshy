@@ -11,6 +11,7 @@ module Web.Welshy
     , RoutePattern, route
     , get, post, put, patch, delete, head, options
 
+    , request, params, body
     , Parsable, param
     , bearerAuth
 
@@ -95,11 +96,13 @@ middleware :: Middleware -> Welshy ()
 middleware = Welshy . tell . pure
 
 execAction :: Action () -> [Param] -> Middleware
-execAction act params nextApp req =
-    (lift $ runAction act params req def) >>= \case
-        Ok _ res  -> return res
-        Halt act' -> execAction act' params nextApp req
-        Pass      -> nextApp req
+execAction act params nextApp req = run act =<< mkEnv params req
+    where
+        run :: Action () -> Env -> ResourceT IO Response
+        run act env = (lift $ runAction act env def) >>= \case
+            Ok _ res  -> return res
+            Halt act' -> run act env
+            Pass      -> nextApp req
 
 get     = route GET
 post    = route POST

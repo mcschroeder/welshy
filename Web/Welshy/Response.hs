@@ -28,7 +28,7 @@ instance Default Response where
     def = ResponseBuilder ok200 [] mempty
 
 modifyResponse :: (Response -> Response) -> Action ()
-modifyResponse f = Action $ \_ _ s -> return $ Ok () (f s)
+modifyResponse f = Action $ \_ s -> return $ Ok () (f s)
 
 -----------------------------------------------------------------------
 

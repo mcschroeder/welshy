@@ -10,7 +10,14 @@ import Control.Monad.Trans.Error
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Encoding as TL
 import Network.HTTP.Types
+
+import Control.Monad.Trans.Resource
+import Data.Conduit.Lazy
+import Data.Conduit.List
+import Data.Conduit
+import Network.Wai
 
 blah :: Action Text
 blah = undefined
@@ -18,6 +25,9 @@ blah = undefined
 main = welshy 3000 $ do
 
 { ---------------------------------------------------------------------
+
+; put "/echo" $ do
+    text =<< TL.decodeUtf8 <$> body
 
 ; get "/secure" $ do
     token <- bearerAuth
