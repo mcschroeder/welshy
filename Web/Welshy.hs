@@ -60,7 +60,7 @@ import Web.Welshy.Response
 -- Effectively, this means that if something like the following happens
 -- the client will simply get an empty reply:
 --
--- > test $ error "wat"
+-- > text $ error "wat"
 --
 -- (The exception will be logged to stderr though.)
 
