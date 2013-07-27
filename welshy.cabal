@@ -2,7 +2,7 @@ name:                welshy
 version:             0.1.0.0
 synopsis:            Haskell web framework (because Scotty had trouble yodeling)
 -- description:
-license:             BSD3
+license:             MIT
 license-file:        LICENSE
 author:              Michael Schröder
 maintainer:          mcschroeder@gmail.com
