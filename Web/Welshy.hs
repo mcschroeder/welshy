@@ -80,23 +80,20 @@ welshy :: Port -> Welshy () -> IO ()
 welshy p w = do
     putStr "Aye, Dwi iawn 'n feddw!"
     putStrLn $ " (port " ++ show p ++ ") (ctrl-c to quit)"
-    let settings = defaultSettings { settingsPort = p }
-    runSettings settings =<< welshyApp w
+    run p (welshyApp w)
 
--- TODO: this does not need to be IO, does it?
 -- | Turns a Welshy app into a WAI 'Application'.
-welshyApp :: Welshy () -> IO Application
-welshyApp (Welshy w) = do
-    let ms = defaultExceptionHandler : execWriter w
-    return $ foldr id (const notFound) ms
+welshyApp :: Welshy () -> Application
+welshyApp (Welshy w) = foldr id notFound (catchError : execWriter w)
     where
-        notFound = return $ ResponseBuilder notFound404 [] mempty
+        notFound :: Application
+        notFound _ = return $ ResponseBuilder notFound404 [] mempty
 
--- see Note [Exception handling]
-defaultExceptionHandler :: Middleware
-defaultExceptionHandler app req = Lifted.catch (app req) $ \e -> do
-    liftIO $ hPrint stderr (e :: SomeException)
-    return $ ResponseBuilder status500 [] mempty
+        -- see Note [Exception Handling]
+        catchError :: Middleware
+        catchError app req = Lifted.catch (app req) $ \e -> do
+            liftIO $ hPrint stderr (e :: SomeException)
+            return $ ResponseBuilder status500 [] mempty
 
 -----------------------------------------------------------------------
 
