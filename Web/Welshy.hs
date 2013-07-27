@@ -3,18 +3,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Web.Welshy
-    ( Welshy, welshy, welshyApp
-    , middleware
+    ( welshy, welshyApp
 
-    , Action, halt, pass
-
-    , RoutePattern, route
+      -- * Middleware & Routing
+    , Welshy, middleware, route, RoutePattern
     , get, post, put, patch, delete, head, options
 
+      -- * Actions
+    , Action
+    , halt, pass
+      -- ** Request
     , request, params, body
-    , Parsable, param
+    , Parsable(..), param
     , bearerAuth
-
+      -- ** Response
     , status, header
     , text, text', html, html'
     , file, filePart
@@ -64,12 +66,16 @@ import Web.Welshy.Response
 --
 -- (The exception will be logged to stderr though.)
 
+-- TODO: clarify this in user-visible documentation.
+
 -----------------------------------------------------------------------
 
--- this is actually just a Monoid, but the do notation is so very convenient
+-- | We use this monad to compose WAI 'Middleware', using the 'middleware'
+-- and 'route' functions.
 newtype Welshy a = Welshy (Writer [Middleware] a)
     deriving (Functor, Applicative, Monad)
 
+-- | Run a Welshy app using the Warp server.
 welshy :: Port -> Welshy () -> IO ()
 welshy p w = do
     putStr "Aye, Dwi iawn 'n feddw!"
@@ -77,6 +83,8 @@ welshy p w = do
     let settings = defaultSettings { settingsPort = p }
     runSettings settings =<< welshyApp w
 
+-- TODO: this does not need to be IO, does it?
+-- | Turns a Welshy app into a WAI 'Application'.
 welshyApp :: Welshy () -> IO Application
 welshyApp (Welshy w) = do
     let ms = defaultExceptionHandler : execWriter w
@@ -92,9 +100,12 @@ defaultExceptionHandler app req = Lifted.catch (app req) $ \e -> do
 
 -----------------------------------------------------------------------
 
+-- | Insert middleware into the app. Note that unlike in Scotty,
+-- each middleware is run at the point of insertion.
 middleware :: Middleware -> Welshy ()
 middleware = Welshy . tell . pure
 
+-- TODO: maybe put this in the Action module?
 execAction :: Action () -> [Param] -> Middleware
 execAction act params nextApp req = run act =<< mkEnv params req
     where
@@ -109,11 +120,16 @@ post    = route POST
 put     = route PUT
 patch   = route PATCH
 delete  = route DELETE
-head    = route HEAD  -- TODO: clashes with Prelude.head (who cares?)
+head    = route HEAD
 options = route OPTIONS
 
+-- | Sinatra-style route pattern. Named parameters are prepended with
+-- a colon (e.g. @\"\/users\/:id\"@) and can be accessed with 'param'.
 type RoutePattern = Text
 
+-- | Define a route for an HTTP method and URL pattern that runs the given
+-- action. Routes are matched in the order they are defined. If no route
+-- matches, a 404 response is returned.
 route :: StdMethod -> RoutePattern -> Action () -> Welshy ()
 route met pat act = middleware $ \nextApp req ->
     case matchRoute met pat req of

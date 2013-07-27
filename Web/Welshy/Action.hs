@@ -34,6 +34,7 @@ instance Applicative Action where
     pure = return
     (<*>) = ap
 
+-- TODO: this instance should be highlighted in the documentation
 instance Alternative Action where
     empty = mzero
     (<|>) = mplus
@@ -47,9 +48,21 @@ instance Monad Action where
 
     fail msg = halt $ error msg
 
+-- | Stop running the current action and continue with another one.
+-- The other action will live in the same request environment and can access
+-- the same route parameters, but it will start with a fresh default response.
+--
+-- This is incredibly useful for error handling. For example:
+--
+-- > get "/user/:id" $ do
+-- >     id <- param "id"
+-- >     getUserFromDatabase id >>= \case
+-- >         Nothing   -> halt $ status notFound404
+-- >         Just user -> json user
 halt :: Action () -> Action a
 halt m = Action $ \_ _ -> return $ Halt m
 
+-- | Stop the current action and continue with the next matching route.
 pass :: Action a
 pass = Action $ \_ _ -> return Pass
 

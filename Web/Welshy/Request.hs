@@ -49,6 +49,13 @@ body = Action $ \r s -> return $ Ok (_body r) s
 --  should we separate param & queryParam?
 --  explicit matching on existence of query params like RFC 6570 ?
 -- then we could also maybe extract documentaton from just the route pattern!
+
+-- | Get a parameter captured by the route pattern.
+--
+--     * If the parameter does not exist, fails with an error.
+--
+--     * If the parameter was found but could not be parsed, 'pass' is called.
+--
 param :: Parsable a => Text -> Action a
 param k = (lookup k <$> params) >>= \case
     Nothing  -> fail ("unknown parameter: " ++ T.unpack k)
@@ -84,6 +91,13 @@ instance Parsable Float   where parseParam = readEither . T.unpack
 
 -----------------------------------------------------------------------
 
+
+-- | Get the bearer token from an authorization header using the @Bearer@
+-- authentication scheme (RFC 6750).
+--
+-- If the request does not have a (syntactically) valid authorization
+-- header for the Bearer scheme, the action halts with HTTP status
+-- @401 Unauthorized@.
 bearerAuth :: Parsable a => Action a
 bearerAuth = do
     headers <- requestHeaders <$> request

@@ -48,7 +48,7 @@ header k v = modifyResponse $ \case
     where update h k v = (k,v) : filter ((/= k) . fst) h
 
 -- | Set the response body to the given lazy 'TL.Text'
--- and the content-type to \"text/plain\".
+-- and the content-type to @text/plain@.
 text :: TL.Text -> Action ()
 text t = do
     header hContentType "text/plain"
@@ -61,7 +61,7 @@ text' t = do
     _builder $ fromByteString $ T.encodeUtf8 t
 
 -- | Set the response body to the given lazy 'TL.Text'
--- and the content-type to \"text/html\".
+-- and the content-type to @text/html@.
 html :: TL.Text -> Action ()
 html t = do
     header hContentType "text/html"
