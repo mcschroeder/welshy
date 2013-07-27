@@ -109,7 +109,7 @@ execAction act params nextApp req = run act =<< mkEnv params req
         run :: Action () -> Env -> ResourceT IO Response
         run act env = (lift $ runAction act env def) >>= \case
             Ok _ res  -> return res
-            Halt act' -> run act env
+            Halt act' -> run act' env
             Pass      -> nextApp req
 
 get     = route GET
