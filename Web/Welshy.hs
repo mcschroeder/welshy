@@ -32,8 +32,6 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Writer hiding (pass)
 import qualified Data.ByteString.Char8 as BS
-import Data.Conduit
-import Data.Default
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -101,16 +99,6 @@ welshyApp (Welshy w) = foldr id notFound (catchError : execWriter w)
 -- each middleware is run at the point of insertion.
 middleware :: Middleware -> Welshy ()
 middleware = Welshy . tell . pure
-
--- TODO: maybe put this in the Action module?
-execAction :: Action () -> [Param] -> Middleware
-execAction act params nextApp req = run act =<< mkEnv params req
-    where
-        run :: Action () -> Env -> ResourceT IO Response
-        run act env = (lift $ runAction act env def) >>= \case
-            Ok _ res  -> return res
-            Halt act' -> run act' env
-            Pass      -> nextApp req
 
 get     = route GET
 post    = route POST

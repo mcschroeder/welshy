@@ -10,7 +10,6 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS
 import Data.Conduit
-import Data.Default
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -21,14 +20,6 @@ import Network.HTTP.Types
 import Network.Wai
 
 import Web.Welshy.Action
-
------------------------------------------------------------------------
-
-instance Default Response where
-    def = ResponseBuilder ok200 [] mempty
-
-modifyResponse :: (Response -> Response) -> Action ()
-modifyResponse f = Action $ \_ s -> return $ Ok () (f s)
 
 -----------------------------------------------------------------------
 
