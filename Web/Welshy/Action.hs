@@ -1,14 +1,17 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Web.Welshy.Action where
 
 import Control.Applicative
+import Control.Arrow
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Resource
 import qualified Data.ByteString.Lazy as BL
 import Data.Conduit.Lazy
+import Data.Maybe
 import Data.Monoid
 import Data.Text (Text)
 import Network.HTTP.Types
@@ -58,6 +61,7 @@ instance MonadIO Action where
 
 -----------------------------------------------------------------------
 
+-- | A route, query or form parameter and its value.
 type Param = (Text, Text)
 
 data Env = Env { _params  :: [Param]
@@ -65,9 +69,22 @@ data Env = Env { _params  :: [Param]
                , _request :: Request }
 
 mkEnv :: [Param] -> Request -> ResourceT IO Env
-mkEnv params req = do
+mkEnv captures req = do
     body <- BL.fromChunks <$> lazyConsume (requestBody req)
+    let params = captures ++ queryText req ++ formParams body req
     return $ Env params body req
+
+queryText :: Request -> [Param]
+queryText = map (second $ fromMaybe "") . queryToQueryText . queryString
+
+formParams :: BL.ByteString -> Request -> [Param]
+formParams body req =
+    case lookup hContentType (requestHeaders req) of
+        Just "application/x-www-form-urlencoded" ->
+            map (second $ fromMaybe "") $ queryToQueryText $
+            parseQuery $ BL.toStrict $ body
+        _ -> []
+
 
 execAction :: Action () -> [Param] -> Middleware
 execAction act params nextApp req = run act =<< mkEnv params req
@@ -105,7 +122,8 @@ pass = Action $ \_ _ -> return Pass
 request :: Action Request
 request = Action $ \r s -> return $ Ok (_request r) s
 
--- | Get all captured parameters.
+-- | Get all parameters (route captures, query string parameters,
+-- HTML form parameters).
 params :: Action [Param]
 params = Action $ \r s -> return $ Ok (_params r) s
 

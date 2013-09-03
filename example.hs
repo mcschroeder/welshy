@@ -26,6 +26,10 @@ main = welshy 3000 $ do
 
 { ---------------------------------------------------------------------
 
+; get "/query" $ do
+    name <- param "name" <|> halt (status badRequest400)
+    text' $ mconcat ["hello ", T.pack name]
+
 ; put "/echo" $ do
     text =<< TL.decodeUtf8 <$> body
 

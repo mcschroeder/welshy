@@ -4,7 +4,6 @@
 module Web.Welshy.Request where
 
 import Control.Applicative
-import Control.Arrow
 import Control.Monad
 import Control.Monad.Trans.Class
 import qualified Data.ByteString as BS
@@ -23,16 +22,8 @@ import Web.Welshy.Response
 
 -----------------------------------------------------------------------
 
-queryText :: Request -> [Param]
-queryText = map (second $ fromMaybe "") . queryToQueryText . queryString
-
--- TODO:
--- if a query param isn't found -> maybe?
---  should we separate param & queryParam?
---  explicit matching on existence of query params like RFC 6570 ?
--- then we could also maybe extract documentaton from just the route pattern!
-
--- | Get a parameter captured by the route pattern.
+-- | Get a parameter captured by the route pattern, from the query string or
+-- from an HTML form field.
 --
 --     * If the parameter does not exist, fails with an error.
 --
@@ -45,6 +36,7 @@ param k = (lookup k <$> params) >>= \case
         Left msg -> pass
         Right v  -> return v
 
+-- TODO: rename Parseable to FromParam or FromText
 -- | Minimal complete definition: 'parseParam'
 class Parsable a where
     parseParam :: Text -> Either String a
