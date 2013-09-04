@@ -14,7 +14,8 @@ module Web.Welshy
     , halt, pass
       -- ** Request
     , request, queryParams, body
-    , Parsable(..), capture, queryParam, maybeQueryParam
+    , FromText(..), maybeFromText
+    , capture, queryParam, maybeQueryParam
     , jsonParam, maybeJsonParam, jsonParams, jsonData
     , bearerAuth
       -- ** Response
