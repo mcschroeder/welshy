@@ -6,8 +6,11 @@ module Web.Welshy.Request where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Class
+import Data.Aeson (FromJSON, fromJSON)
+import qualified Data.Aeson as A
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.HashMap.Strict as HashMap
 import Data.Maybe
 import Data.Monoid
 import Data.Text (Text)
@@ -23,7 +26,6 @@ import Web.Welshy.Response
 
 -----------------------------------------------------------------------
 
--- TODO: hide this method and only expose captures via function arguments
 -- | Get a parameter captured by the route pattern.
 --
 --     * If the parameter does not exist, fails with an error.
@@ -63,6 +65,55 @@ maybeQueryParam k = (lookup k <$> queryParams) >>= \case
         Left  _ -> halt $ status badRequest400
         Right v -> return (Just v)
 
+-- | Get a JSON parameter.
+--
+--     * If the request body is not a JSON dictionary,
+--       or if the parameter does not exist or could not be parsed,
+--       the action halts with HTTP status @400 Bad Request@.
+--
+jsonParam :: FromJSON a => Text -> Action a
+jsonParam k = (HashMap.lookup k <$> jsonParams) >>= \case
+    Nothing  -> halt $ status badRequest400
+    Just raw -> case fromJSON raw of
+        A.Error   _ -> halt $ status badRequest400
+        A.Success v -> return v
+
+
+-- | Like 'jsonParam', but returns 'Nothing' if the parameter wasn't found.
+--
+--     * If the request body is not a JSON dictionary,
+--       the action halts with HTTP status @400 Bad Request@.
+--
+maybeJsonParam :: FromJSON a => Text -> Action (Maybe a)
+maybeJsonParam k = (HashMap.lookup k <$> jsonParams) >>= \case
+    Nothing  -> return Nothing
+    Just raw -> case fromJSON raw of
+        A.Error   _ -> halt $ status badRequest400
+        A.Success v -> return (Just v)
+
+
+-- | Parse the request body as a JSON object.
+--
+--     * If the body could not be parsed,
+--       the action halts with HTTP status @400 Bad Request@.
+--
+jsonData :: FromJSON a => Action a
+jsonData = A.decode <$> body >>= \case
+    Nothing -> halt $ status badRequest400
+    Just v  -> return v
+
+-- | Get all JSON parameters.
+--
+--     * If the request body is not a JSON dictionary,
+--       the action halts with HTTP status @400 Bad Request@.
+--
+jsonParams :: Action A.Object
+jsonParams = Action $ \r s -> do
+    case _jsonParams r of
+        Nothing -> return $ Halt $ status badRequest400
+        Just v  -> return $ Ok v s
+
+-----------------------------------------------------------------------
 
 
 -- TODO: rename Parseable to FromParam or FromText

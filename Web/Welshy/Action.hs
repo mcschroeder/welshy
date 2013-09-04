@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Web.Welshy.Action where
 
@@ -9,6 +10,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Resource
+import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as BL
 import Data.Conduit.Lazy
 import Data.Maybe
@@ -67,13 +69,15 @@ type Param = (Text, Text)
 data Env = Env { _captures    :: [Param]
                , _queryParams :: [Param]
                , _body        :: BL.ByteString
+               , _jsonParams  :: Maybe A.Object
                , _request     :: Request }
 
 mkEnv :: [Param] -> Request -> ResourceT IO Env
-mkEnv captures req = do
-    body <- BL.fromChunks <$> lazyConsume (requestBody req)
-    let params = queryText req ++ formParams body req
-    return $ Env captures params body req
+mkEnv _captures _request = do
+    _body <- BL.fromChunks <$> lazyConsume (requestBody _request)
+    let _queryParams = queryText _request ++ formParams _body _request
+        _jsonParams = either (const Nothing) Just (A.eitherDecode _body)
+    return Env {..}
 
 queryText :: Request -> [Param]
 queryText = map (second $ fromMaybe "") . queryToQueryText . queryString
@@ -127,7 +131,7 @@ request = Action $ \r s -> return $ Ok (_request r) s
 queryParams :: Action [Param]
 queryParams = Action $ \r s -> return $ Ok (_queryParams r) s
 
--- TODO: remove/hide
+-- | Get all route captures.
 captures :: Action [Param]
 captures = Action $ \r s -> return $ Ok (_captures r) s
 

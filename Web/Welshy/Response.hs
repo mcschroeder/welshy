@@ -6,6 +6,8 @@ module Web.Welshy.Response where
 import Blaze.ByteString.Builder
 import Control.Applicative
 import Control.Monad
+import Data.Aeson (ToJSON)
+import qualified Data.Aeson as A
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS
@@ -63,6 +65,13 @@ html' :: Text -> Action ()
 html' t = do
     header hContentType "text/html"
     _builder $ fromByteString $ T.encodeUtf8 t
+
+-- | Set the response body to the JSON encoding of the given value
+-- and the content-type to @application/json@.
+json :: ToJSON a => a -> Action ()
+json v = do
+    header hContentType "application/json"
+    _builder $ fromLazyByteString $ A.encode v
 
 -- | Sends the given file as the response.
 file :: FilePath -> Action ()

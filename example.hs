@@ -26,6 +26,14 @@ main = welshy 3000 $ do
 
 { ---------------------------------------------------------------------
 
+; get "/json" $ do
+    name <- jsonParam "name"
+    age <- maybeJsonParam "age" :: Action (Maybe Int)
+    case age of
+        Nothing -> text $ "Please state your age!"
+        Just x | x > 18 -> text $ mconcat ["Hello ", name]
+        _ -> text "You are too young."
+
 ; get "/query" $ do
     name <- queryParam "name"
     text' $ mconcat ["hello ", T.pack name]

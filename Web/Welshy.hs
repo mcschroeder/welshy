@@ -15,10 +15,12 @@ module Web.Welshy
       -- ** Request
     , request, queryParams, body
     , Parsable(..), capture, queryParam, maybeQueryParam
+    , jsonParam, maybeJsonParam, jsonParams, jsonData
     , bearerAuth
       -- ** Response
     , status, header
     , text, text', html, html'
+    , json
     , file, filePart
     , source
     ) where
