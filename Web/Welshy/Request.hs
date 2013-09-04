@@ -60,7 +60,7 @@ maybeQueryParam :: Parsable a => Text -> Action (Maybe a)
 maybeQueryParam k = (lookup k <$> queryParams) >>= \case
     Nothing  -> return Nothing
     Just raw -> case parseParam raw of
-        Left  _ -> return Nothing
+        Left  _ -> halt $ status badRequest400
         Right v -> return (Just v)
 
 
