@@ -64,15 +64,16 @@ instance MonadIO Action where
 -- | A route, query or form parameter and its value.
 type Param = (Text, Text)
 
-data Env = Env { _params  :: [Param]
-               , _body    :: BL.ByteString
-               , _request :: Request }
+data Env = Env { _captures    :: [Param]
+               , _queryParams :: [Param]
+               , _body        :: BL.ByteString
+               , _request     :: Request }
 
 mkEnv :: [Param] -> Request -> ResourceT IO Env
 mkEnv captures req = do
     body <- BL.fromChunks <$> lazyConsume (requestBody req)
-    let params = captures ++ queryText req ++ formParams body req
-    return $ Env params body req
+    let params = queryText req ++ formParams body req
+    return $ Env captures params body req
 
 queryText :: Request -> [Param]
 queryText = map (second $ fromMaybe "") . queryToQueryText . queryString
@@ -87,7 +88,7 @@ formParams body req =
 
 
 execAction :: Action () -> [Param] -> Middleware
-execAction act params nextApp req = run act =<< mkEnv params req
+execAction act captures nextApp req = run act =<< mkEnv captures req
     where
         run :: Action () -> Env -> ResourceT IO Response
         run act env = (lift $ runAction act env okRes) >>= \case
@@ -122,10 +123,13 @@ pass = Action $ \_ _ -> return Pass
 request :: Action Request
 request = Action $ \r s -> return $ Ok (_request r) s
 
--- | Get all parameters (route captures, query string parameters,
--- HTML form parameters).
-params :: Action [Param]
-params = Action $ \r s -> return $ Ok (_params r) s
+-- | Get all query parameters.
+queryParams :: Action [Param]
+queryParams = Action $ \r s -> return $ Ok (_queryParams r) s
+
+-- TODO: remove/hide
+captures :: Action [Param]
+captures = Action $ \r s -> return $ Ok (_captures r) s
 
 -- | Get the request body.
 body :: Action BL.ByteString

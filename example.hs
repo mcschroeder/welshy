@@ -27,7 +27,7 @@ main = welshy 3000 $ do
 { ---------------------------------------------------------------------
 
 ; get "/query" $ do
-    name <- param "name" <|> halt (status badRequest400)
+    name <- queryParam "name"
     text' $ mconcat ["hello ", T.pack name]
 
 ; put "/echo" $ do
@@ -59,7 +59,7 @@ main = welshy 3000 $ do
         False -> "b"
 
 ; get "/test/:word" $ do
-    word <- mzero <|> param "blah" <|> param "word" <|> param "wat"
+    word <- mzero <|> capture "blah" <|> capture "word" <|> capture "wat"
     --mzero
     unless (word == "hello") $ halt $ do
         status badRequest400
@@ -68,7 +68,9 @@ main = welshy 3000 $ do
     text' $ T.pack $ reverse word
 
 ; get "/test2/:eid" $ do
-    eid <- param "eid" :: Action Int
+    eid <- capture "eid" :: Action Int
+
+    what <- (queryParam "what" :: Action Int) -- <|> (halt $ status status202)
 
     if eid > 2
         then text "greater than 2"

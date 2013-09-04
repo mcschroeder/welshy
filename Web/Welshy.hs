@@ -13,8 +13,8 @@ module Web.Welshy
     , Action
     , halt, pass
       -- ** Request
-    , request, params, body
-    , Parsable(..), param
+    , request, queryParams, body
+    , Parsable(..), capture, queryParam, maybeQueryParam
     , bearerAuth
       -- ** Response
     , status, header

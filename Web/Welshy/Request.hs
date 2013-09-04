@@ -9,6 +9,7 @@ import Control.Monad.Trans.Class
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.Maybe
+import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -22,19 +23,47 @@ import Web.Welshy.Response
 
 -----------------------------------------------------------------------
 
--- | Get a parameter captured by the route pattern, from the query string or
--- from an HTML form field.
+-- TODO: hide this method and only expose captures via function arguments
+-- | Get a parameter captured by the route pattern.
 --
 --     * If the parameter does not exist, fails with an error.
 --
 --     * If the parameter was found but could not be parsed, 'pass' is called.
+--       This means routes are typed to a degree.
 --
-param :: Parsable a => Text -> Action a
-param k = (lookup k <$> params) >>= \case
-    Nothing  -> fail ("unknown parameter: " ++ T.unpack k)
+capture :: Parsable a => Text -> Action a
+capture k = (lookup k <$> captures) >>= \case
+    Nothing  -> fail ("unknown capture: " ++ T.unpack k)
     Just raw -> case parseParam raw of
-        Left msg -> pass
+        Left  _ -> pass
+        Right v -> return v
+
+-- TODO: provide way to customize default response
+-- | Get a query parameter.
+--
+--     * If the parameter does not exist or could not be parsed,
+--       the action halts with HTTP status @400 Bad Request@.
+--
+queryParam :: Parsable a => Text -> Action a
+queryParam k = (lookup k <$> queryParams) >>= \case
+    Nothing  -> halt $ status badRequest400
+    Just raw -> case parseParam raw of
+        Left msg -> halt $ status badRequest400
         Right v  -> return v
+
+-- | Like 'queryParam', but returns 'Nothing' if the parameter wasn't found.
+--
+--     * If the parameter could not be parsed,
+--       the action halts with HTTP status @400 BadRequest@
+--
+maybeQueryParam :: Parsable a => Text -> Action (Maybe a)
+maybeQueryParam k = (lookup k <$> queryParams) >>= \case
+    Nothing  -> return Nothing
+    Just raw -> case parseParam raw of
+        Left  _ -> return Nothing
+        Right v -> return (Just v)
+
+
 
 -- TODO: rename Parseable to FromParam or FromText
 -- | Minimal complete definition: 'parseParam'
