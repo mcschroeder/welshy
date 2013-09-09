@@ -16,12 +16,11 @@ import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import qualified Data.Text.Lazy as TL
 import Network.HTTP.Types
 import Network.Wai
-import Text.Read (readEither)
 
 import Web.Welshy.Action
+import Web.Welshy.FromText
 import Web.Welshy.Response
 
 -----------------------------------------------------------------------
@@ -114,42 +113,6 @@ jsonParams = Action $ \r s -> do
         Just v  -> return $ Ok v s
 
 -----------------------------------------------------------------------
-
--- | A type that can be converted from a strict 'Text' value.
--- Used for parsing route captures, query parameters, header values, etc.
---
--- Minimal complete definition: 'fromText'.
-class FromText a where
-    fromText :: Text -> Either String a
-
-    -- | Allows a specialized way of parsing lists of values.
-    -- The default definition uses 'fromText' to parse comma-delimited lists.
-    fromTextList :: Text -> Either String [a]
-    fromTextList = mapM fromText . T.split (== ',')
-
--- | > maybeFromText = either (const Nothing) Just . fromText
-maybeFromText :: FromText a => Text -> Maybe a
-maybeFromText = either (const Nothing) Just . fromText
-
-instance FromText a => FromText [a] where
-    fromText = fromTextList
-
-instance FromText Char where
-    fromText t = case T.unpack t of
-                       [c] -> Right c
-                       _   -> Left "fromText Char: no parse"
-    fromTextList = Right . T.unpack
-
-instance FromText Text    where fromText = Right
-instance FromText TL.Text where fromText = Right . TL.fromStrict
-instance FromText Int     where fromText = readEither . T.unpack
-instance FromText Integer where fromText = readEither . T.unpack
-instance FromText Bool    where fromText = readEither . T.unpack
-instance FromText Double  where fromText = readEither . T.unpack
-instance FromText Float   where fromText = readEither . T.unpack
-
------------------------------------------------------------------------
-
 
 -- | Get the bearer token from an authorization header using the @Bearer@
 -- authentication scheme (RFC 6750).

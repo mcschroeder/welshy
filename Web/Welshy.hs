@@ -46,6 +46,7 @@ import System.IO
 import Prelude hiding (head)
 
 import Web.Welshy.Action
+import Web.Welshy.FromText
 import Web.Welshy.Request
 import Web.Welshy.Response
 

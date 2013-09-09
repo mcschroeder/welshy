@@ -17,6 +17,7 @@ extra-source-files:
 library
   exposed-modules:  Web.Welshy
   other-modules:    Web.Welshy.Action,
+                    Web.Welshy.FromText,
                     Web.Welshy.Request,
                     Web.Welshy.Response
   build-depends:
