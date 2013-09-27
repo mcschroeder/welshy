@@ -6,6 +6,7 @@ module Web.Welshy.Action where
 
 import Control.Applicative
 import Control.Arrow
+import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
@@ -60,6 +61,10 @@ instance MonadIO Action where
     liftIO m = Action $ \_ s -> do
         a <- m
         return $ Ok a s
+
+-- | Like `catch` but with the exception handler and result in 'Action'.
+catchIO :: Exception e => IO a -> (e -> Action a) -> Action a
+catchIO act h = either h return =<< (liftIO $ try $ act)
 
 -----------------------------------------------------------------------
 

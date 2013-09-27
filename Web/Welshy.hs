@@ -12,6 +12,7 @@ module Web.Welshy
       -- * Actions
     , Action
     , halt, pass
+    , catchIO
       -- ** Request
     , request, queryParams, body
     , FromText(..), maybeFromText
