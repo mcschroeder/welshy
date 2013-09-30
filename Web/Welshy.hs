@@ -102,12 +102,25 @@ welshyApp (Welshy w) = foldr id notFound (catchError : execWriter w)
 middleware :: Middleware -> Welshy ()
 middleware = Welshy . tell . pure
 
-get     = route GET
-post    = route POST
-put     = route PUT
-patch   = route PATCH
-delete  = route DELETE
-head    = route HEAD
+get :: RoutePattern -> Action () -> Welshy ()
+get = route GET
+
+post :: RoutePattern -> Action () -> Welshy ()
+post = route POST
+
+put :: RoutePattern -> Action () -> Welshy ()
+put = route PUT
+
+patch :: RoutePattern -> Action () -> Welshy ()
+patch = route PATCH
+
+delete :: RoutePattern -> Action () -> Welshy ()
+delete = route DELETE
+
+head :: RoutePattern -> Action () -> Welshy ()
+head = route HEAD
+
+options :: RoutePattern -> Action () -> Welshy ()
 options = route OPTIONS
 
 -- | Sinatra-style route pattern. Named parameters are prepended with
