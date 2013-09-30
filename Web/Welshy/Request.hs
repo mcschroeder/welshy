@@ -5,14 +5,10 @@ module Web.Welshy.Request where
 
 import Control.Applicative
 import Control.Monad
-import Control.Monad.Trans.Class
 import Data.Aeson (FromJSON, fromJSON)
 import qualified Data.Aeson as A
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString as B
 import qualified Data.HashMap.Strict as HashMap
-import Data.Maybe
-import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -125,6 +121,6 @@ bearerAuth = do
     headers <- requestHeaders <$> request
     maybe (halt $ status unauthorized401) return $ do
         credentials <- lookup hAuthorization headers
-        let (scheme, raw) = BS.splitAt 7 credentials
+        let (scheme, raw) = B.splitAt 7 credentials
         guard (scheme == "Bearer ")
         maybeFromText $ T.decodeUtf8 raw

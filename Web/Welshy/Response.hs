@@ -4,17 +4,11 @@
 module Web.Welshy.Response where
 
 import Blaze.ByteString.Builder
-import Control.Applicative
-import Control.Monad
 import Data.Aeson (ToJSON)
 import qualified Data.Aeson as A
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as BS
 import Data.Conduit
-import Data.Monoid
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
@@ -33,7 +27,7 @@ status s = modifyResponse $ \case
     (ResponseSource  _ h cs)   -> ResponseSource  s h cs
 
 -- | Add or replace one of the response headers.
-header :: HeaderName -> BS.ByteString -> Action ()
+header :: HeaderName -> ByteString -> Action ()
 header k v = modifyResponse $ \case
     (ResponseBuilder s h b)    -> ResponseBuilder s (update h) b
     (ResponseFile    s h f fp) -> ResponseFile    s (update h) f fp

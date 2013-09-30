@@ -27,15 +27,12 @@ module Web.Welshy
     , source
     ) where
 
-import Blaze.ByteString.Builder (fromByteString)
 import Control.Applicative
 import Control.Exception
 import qualified Control.Exception.Lifted as Lifted
 import Control.Monad
 import Control.Monad.IO.Class
-import Control.Monad.Trans.Class
 import Control.Monad.Trans.Writer hiding (pass)
-import qualified Data.ByteString.Char8 as BS
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
