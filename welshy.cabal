@@ -82,7 +82,7 @@ library
   
   extensions:
     GeneralizedNewtypeDeriving
-    LambdaCase
+    -- LambdaCase
     OverloadedStrings
     RecordWildCards
 
