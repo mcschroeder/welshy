@@ -13,18 +13,25 @@ module Web.Welshy
     , Action
     , halt, pass
     , catchIO
+
       -- ** Request
-    , request, queryParams, body
-    , FromText(..), maybeFromText
-    , capture, queryParam, maybeQueryParam
+    , request, body
+    , capture, captures
+    , queryParam, maybeQueryParam, queryParams
     , jsonParam, maybeJsonParam, jsonParams, jsonData
     , bearerAuth
+
       -- ** Response
     , status, header
-    , text, text', html, html'
+    , text, text'
+    , html, html'
     , json
     , file, filePart
     , source
+
+      -- * Parameter Parsing
+    , Param
+    , FromText(..), maybeFromText
     ) where
 
 import Control.Applicative
@@ -124,7 +131,7 @@ options :: RoutePattern -> Action () -> Welshy ()
 options = route OPTIONS
 
 -- | Sinatra-style route pattern. Named parameters are prepended with
--- a colon (e.g. @\"\/users\/:id\"@) and can be accessed with 'param'.
+-- a colon (e.g. @\"\/users\/:id\"@) and can be accessed with 'capture'.
 type RoutePattern = Text
 
 -- | Define a route for an HTTP method and URL pattern that runs the given

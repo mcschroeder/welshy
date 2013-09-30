@@ -112,15 +112,15 @@ execAction act0 caps nextApp req = run act0 =<< mkEnv caps req
 
 -- | Stop running the current action and continue with another one.
 -- The other action will live in the same request environment and can access
--- the same route parameters, but it will start with a fresh default response.
+-- the same route captures, but it will start with a fresh default response.
 --
 -- This is incredibly useful for error handling. For example:
 --
--- > get "/user/:id" $ do
--- >     id <- param "id"
--- >     getUserFromDatabase id >>= \case
--- >         Nothing   -> halt $ status notFound404
--- >         Just user -> json user
+-- > patch "/users/:uid" $ do
+-- >     uid <- capture "uid"
+-- >     user <- getUserFromDB uid
+-- >             `catchIO` (\_ -> halt $ status notFound404)
+-- >     ...
 halt :: Action () -> Action a
 halt m = Action $ \_ _ -> return $ Halt m
 
