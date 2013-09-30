@@ -35,10 +35,10 @@ status s = modifyResponse $ \case
 -- | Add or replace one of the response headers.
 header :: HeaderName -> BS.ByteString -> Action ()
 header k v = modifyResponse $ \case
-    (ResponseBuilder s h b)    -> ResponseBuilder s (update h k v) b
-    (ResponseFile    s h f fp) -> ResponseFile    s (update h k v) f fp
-    (ResponseSource  s h cs)   -> ResponseSource  s (update h k v) cs
-    where update h k v = (k,v) : filter ((/= k) . fst) h
+    (ResponseBuilder s h b)    -> ResponseBuilder s (update h) b
+    (ResponseFile    s h f fp) -> ResponseFile    s (update h) f fp
+    (ResponseSource  s h cs)   -> ResponseSource  s (update h) cs
+    where update h = (k,v) : filter ((/= k) . fst) h
 
 -- | Set the response body to the given lazy 'TL.Text'
 -- and the content-type to @text/plain@.

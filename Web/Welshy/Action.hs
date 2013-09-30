@@ -88,16 +88,16 @@ queryText :: Request -> [Param]
 queryText = map (second $ fromMaybe "") . queryToQueryText . queryString
 
 formParams :: BL.ByteString -> Request -> [Param]
-formParams body req =
+formParams b req =
     case lookup hContentType (requestHeaders req) of
         Just "application/x-www-form-urlencoded" ->
             map (second $ fromMaybe "") $ queryToQueryText $
-            parseQuery $ BL.toStrict $ body
+            parseQuery $ BL.toStrict $ b
         _ -> []
 
 
 execAction :: Action () -> [Param] -> Middleware
-execAction act captures nextApp req = run act =<< mkEnv captures req
+execAction act0 caps nextApp req = run act0 =<< mkEnv caps req
     where
         run :: Action () -> Env -> ResourceT IO Response
         run act env = (lift $ runAction act env okRes) >>= \case

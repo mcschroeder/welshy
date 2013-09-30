@@ -123,8 +123,8 @@ type RoutePattern = Text
 route :: StdMethod -> RoutePattern -> Action () -> Welshy ()
 route met pat act = middleware $ \nextApp req ->
     case matchRoute met pat req of
-        Nothing       -> nextApp req
-        Just captures -> execAction act captures nextApp req
+        Nothing   -> nextApp req
+        Just caps -> execAction act caps nextApp req
 
 matchRoute :: StdMethod -> RoutePattern -> Request -> Maybe [Param]
 matchRoute met pat req =
